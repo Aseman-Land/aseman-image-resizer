@@ -44,7 +44,11 @@ void convert(const QString &path, int min_size)
         }
         else
             QFile::remove(temp_path);
-     }
+    }
+
+    const auto dirs = QDir(path).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const auto &d: dirs)
+        convert(path + '/' + d, min_size);
 }
 
 int main(int argc, char *argv[])
