@@ -26,8 +26,12 @@ void convert(const QString &path, int min_size)
         auto img = reader.read();
         auto transformation = reader.transformation();
         const auto size = img.size();
+        if (size.width() < min_size || size.height() < min_size)
+        {
+            qDebug() << f << "Ignored";
+            continue;
+        }
 
-        qDebug() << f;
         if (size.width() > size.height() && size.height() > min_size)
             img = img.scaledToHeight(min_size, Qt::SmoothTransformation);
         else if (size.width() > min_size)
@@ -39,11 +43,25 @@ void convert(const QString &path, int min_size)
 
         if (!writer.write(img))
         {
-            qDebug() << "Failed to write. revert" << file_path;
+            qDebug() << f << "Failed to write. Reverting...";
             QFile::rename(temp_path, file_path);
         }
         else
-            QFile::remove(temp_path);
+        {
+            QFileInfo img_inf(file_path);
+            QFileInfo tmp_inf(temp_path);
+            if (img_inf.size() > tmp_inf.size())
+            {
+                qDebug() << f << "Resize not effective. Reverting...";
+                QFile::remove(file_path);
+                QFile::rename(temp_path, file_path);
+            }
+            else
+            {
+                qDebug() << f << "Done";
+                QFile::remove(temp_path);
+            }
+        }
     }
 
     const auto dirs = QDir(path).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
