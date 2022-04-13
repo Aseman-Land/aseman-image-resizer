@@ -69,31 +69,58 @@ void convert(const QString &path, int min_size)
         convert(path + '/' + d, min_size);
 }
 
+void fixNames(const QString &path)
+{
+    const auto files = QDir(path).entryList({"*.jpg", "*.JPG", "*.png", "*.PNG", "*.JPEG", "*.jpeg"}, QDir::Files);
+    for (const auto &f: files)
+    {
+        auto fixed = QString(f).replace(".tmp.", ".");
+        if (fixed == f)
+            continue;
+
+        qDebug() << "Rename" << (path + '/' + f) << "to" << (path + '/' + fixed);
+        QFile::rename(path + '/' + f, path + '/' + fixed);
+    }
+
+    const auto dirs = QDir(path).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const auto &d: dirs)
+        fixNames(path + '/' + d);
+}
+
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
 
     const auto args = app.arguments();
-    if (args.count() < 3)
+
+    if (args.count() == 2)
+    {
+        fixNames(args.at(1));
+    }
+    else
+    if (args.count() == 3)
+    {
+        auto path = args.at(1);
+        auto min_size = args.at(2).toInt();
+        if (min_size == 0)
+        {
+            min_size = args.at(1).toInt();
+            path = args.at(2);
+        }
+        if (min_size == 0)
+        {
+            qDebug() << "Size cannot be zero";
+            qDebug() << "Usage:" << app.applicationName().toStdString().c_str() << "2048 \"/path/to/root/dir\"";
+            return 0;
+        }
+
+        convert(path, min_size);
+    }
+    else
     {
         qDebug() << "Usage:" << app.applicationName().toStdString().c_str() << "2048 \"/path/to/root/dir\"";
         return 0;
     }
 
-    auto path = args.at(1);
-    auto min_size = args.at(2).toInt();
-    if (min_size == 0)
-    {
-        min_size = args.at(1).toInt();
-        path = args.at(2);
-    }
-    if (min_size == 0)
-    {
-        qDebug() << "Size cannot be zero";
-        qDebug() << "Usage:" << app.applicationName().toStdString().c_str() << "2048 \"/path/to/root/dir\"";
-        return 0;
-    }
-
-    convert(path, min_size);
     return 0;
 }
